@@ -1,0 +1,3 @@
+[submodule "components/rsmb"]
+	path = components/rsmb
+	url = https://github.com/DynamicDevices/mosquitto.rsmb.git

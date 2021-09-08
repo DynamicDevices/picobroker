@@ -1,0 +1,99 @@
+menu "PicoBroker"
+
+    choice BOARD_TYPE        
+        prompt "Target board type"
+        default BOARD_M5STACK
+        help
+            Target board type
+        config BOARD_ESP32_GENERIC
+            bool "ESP32 Generic"
+        config BOARD_M5STACK
+            bool "M5Stack"
+        config BOARD_ESP32_CAM
+            bool "ESP32-CAM"
+    endchoice
+
+    config SUPPORT_DISPLAY
+        prompt "Support a display for output"
+        bool 
+        default "n" if BOARD_ESP32_GENERIC
+        default "y" if BOARD_M5STACK
+        default "n" if BOARD_ESP32_CAM
+        help 
+            Whether to support display output
+
+    config SUPPORT_SD_CARD
+        prompt "Support an SD card adapter"
+        bool 
+        default "n" if BOARD_ESP32_GENERIC
+        default "y" if BOARD_M5STACK
+        default "y" if BOARD_ESP32_CAM
+        help 
+            Whether to support SD Card
+
+    config SUPPORT_POWER_CONTROL
+        prompt "Support an power control of another device via GPIO"
+        bool 
+        default "n" if BOARD_ESP32_GENERIC
+        default "y" if BOARD_M5STACK
+        default "y" if BOARD_ESP32_CAM
+        help 
+            Whether to support GPIO for turning power control on/off for another device
+
+    config PWR_CONTROL_PIN
+        int "GPIO pin"
+        default 21 if BOARD_M5STACK
+        depends on SUPPORT_POWER_CONTROL
+        help
+            GPIO pin to use to turn on/off external device (e.g. via relay)
+        
+    config SUPPORT_WIFI_STA
+        prompt "Support WiFI STA Mode"
+        bool 
+        default "y" 
+        help 
+        Whether to support WiFI in STA mode (todo: Not implemented, always on)
+        
+    config ESP_STA_SSID
+        string "WiFi SSID"
+        default "myssid"
+        depends on SUPPORT_WIFI_STA
+        help
+            SSID (network name) for the AP for PicoBroker to connect to.
+            
+    config ESP_STA_PASS
+        string "WiFi Password"
+        default "mypassword"
+        depends on SUPPORT_WIFI_STA
+        help
+            WiFi password for the PicoBroker to use.
+
+    config ESP_STA_MAXIMUM_RETRY
+        int "Maximum retry"
+        default 5
+        depends on SUPPORT_WIFI_STA
+        help
+            Set the Maximum retry to avoid station reconnecting to the AP unlimited when the AP is really inexistent.
+
+    config SUPPORT_WIFI_AP
+        prompt "Support WiFI AP Mode"
+        bool 
+        default "y" 
+        help 
+            Whether to support WiFI in AP mode
+        
+    config ESP_AP_SSID
+        string "WiFi AP SSID"
+        default "PicoBroker"
+        depends on SUPPORT_WIFI_AP
+        help
+            SSID (network name) for the AP for PicoBroker to brodcast.
+            
+    config ESP_AP_PASS
+        string "WiFi Password"
+        default "mypassword"
+        depends on SUPPORT_WIFI_AP
+        help
+            WiFi AP password for the PicoBroker to use.
+
+endmenu # PicoBroker

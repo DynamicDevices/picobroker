@@ -2,7 +2,7 @@ menu "PicoBroker"
 
     choice BOARD_TYPE        
         prompt "Target board type"
-        default BOARD_M5STACK
+        default BOARD_ESP32_GENERIC
         help
             Target board type
         config BOARD_ESP32_GENERIC
@@ -31,9 +31,16 @@ menu "PicoBroker"
         help 
             Whether to support SD Card
 
+    config FILES_IN_SPIFFS
+        prompt "Support building needed files into SPIFFS"
+        bool 
+        default "y" if BOARD_ESP32_GENERIC
+        help 
+            Whether to support building files into SPIFFS, e.g. if we don't have SD card support
+        
     config SUPPORT_POWER_CONTROL
         prompt "Support an power control of another device via GPIO"
-        bool 
+        bool
         default "n" if BOARD_ESP32_GENERIC
         default "y" if BOARD_M5STACK
         default "y" if BOARD_ESP32_CAM
@@ -50,7 +57,7 @@ menu "PicoBroker"
     config SUPPORT_WIFI_STA
         prompt "Support WiFI STA Mode"
         bool 
-        default "y" 
+        default "n" 
         help 
         Whether to support WiFI in STA mode (todo: Not implemented, always on)
         

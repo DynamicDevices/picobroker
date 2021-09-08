@@ -17,6 +17,18 @@
 #include "sdcard.h"
 #include "display.h"
 
+#define BASE_PATH SD_CARD_BASE_PATH
+
+#if defined (CONFIG_FILES_IN_SPIFFS)
+#include "esp_spiffs.h"
+#undef BASE_PATH 
+// todo: base path in rsmb is hardcoded to sdcard for now
+//       so we use that here. I'd like to be able to use
+//       /spiffs as a mount so we can have spiffs and sd
+//       card supported 
+//#define BASE_PATH "/spiffs"
+#define BASE_PATH SD_CARD_BASE_PATH
+#endif
 
 // --------------------
 // EXTERNAL DECLARATIONS
@@ -31,6 +43,8 @@ static const char *TAG = "picobroker";
 
 // Implementation
 
+#ifdef SUPPORT_DISPLAY 
+
 void lcd_task(void *pvParameter)
 {
     while(1) 
@@ -43,9 +57,13 @@ void lcd_task(void *pvParameter)
 
 }
 
+#endif
+
 void main_task(void *pvParameter)
 {
-    printf("ESP32 Starting Up...\n");
+    esp_err_t ret;
+
+    ESP_LOGI(TAG, "ESP32 Starting Up...\n");
 
     // Stop the watchdog for this task 
     // (todo: some kind of broker callback)
@@ -61,6 +79,8 @@ void main_task(void *pvParameter)
 
     xTaskCreate(&lcd_task, "lcd_task", 8192, NULL, 5, NULL);
 #endif
+
+#if defined(CONFIG_SUPPORT_SD_CARD)
 
     // Setup SD Card over SPI
     sdmmc_host_t host_config = SDSPI_HOST_M5STACK();
@@ -87,9 +107,9 @@ void main_task(void *pvParameter)
     // production applications.
     sdmmc_card_t* card;
 #if defined(SUPPORT_DISPLAY)
-    esp_err_t ret = esp_vfs_fat_sdspi_mount(SD_CARD_BASE_PATH, &host_config, &device_config, &mount_config, &card);
+    ret = esp_vfs_fat_sdspi_mount(SD_CARD_BASE_PATH, &host_config, &device_config, &mount_config, &card);
 #else
-    esp_err_t ret = esp_vfs_fat_sdmmc_mount(SD_CARD_BASE_PATH, &host_config, &slot_config, &mount_config, &card);
+    ret = esp_vfs_fat_sdmmc_mount(SD_CARD_BASE_PATH, &host_config, &slot_config, &mount_config, &card);
 #endif
     if (ret != ESP_OK) {
         if (ret == ESP_FAIL) {
@@ -111,6 +131,44 @@ void main_task(void *pvParameter)
         ;
 #endif
 
+#elif defined (CONFIG_FILES_IN_SPIFFS)
+
+    esp_vfs_spiffs_conf_t conf = {
+      .base_path = BASE_PATH,
+      .partition_label = NULL,
+      .max_files = 5,
+      .format_if_mount_failed = false
+    };
+
+    ESP_LOGI(TAG, "Mounting SPIFFS on " BASE_PATH);
+
+    // Use settings defined above to initialize and mount SPIFFS filesystem.
+    // Note: esp_vfs_spiffs_register is an all-in-one convenience function.
+    ret = esp_vfs_spiffs_register(&conf);
+
+    if (ret != ESP_OK) {
+        if (ret == ESP_FAIL) {
+            ESP_LOGE(TAG, "Failed to mount or format filesystem");
+        } else if (ret == ESP_ERR_NOT_FOUND) {
+            ESP_LOGE(TAG, "Failed to find SPIFFS partition");
+        } else {
+            ESP_LOGE(TAG, "Failed to initialize SPIFFS (%s)", esp_err_to_name(ret));
+        }
+    }
+
+    size_t total = 0, used = 0;
+    ret = esp_spiffs_info(conf.partition_label, &total, &used);
+    if (ret != ESP_OK) {
+        ESP_LOGE(TAG, "Failed to get SPIFFS partition information (%s)", esp_err_to_name(ret));
+    } else {
+        ESP_LOGI(TAG, "Partition size: total: %d, used: %d", total, used);
+    }
+#else
+
+#error You have to either support an SD card or store files in SPIFFS !
+
+#endif
+
     // Initialize NVS
     ret = nvs_flash_init();
     if (ret == ESP_ERR_NVS_NO_FREE_PAGES || ret == ESP_ERR_NVS_NEW_VERSION_FOUND) {
@@ -120,6 +178,7 @@ void main_task(void *pvParameter)
     ESP_ERROR_CHECK(ret);
 
     // Initialise WiFi
+    ESP_LOGI(TAG, "Start WiFi\n");
     wifi_init();
 
 #ifdef SUPPORT_UDP_LOGGING
@@ -137,11 +196,11 @@ void main_task(void *pvParameter)
     fflush(stdout);
 
     // Now run the RSMB broker code. Give it the name of a configuration file to load from SD Card
-    char* argv[] = { "broker.exe", SD_CARD_BASE_PATH "/broker.cfg" };
+    char* argv[] = { "broker.exe", BASE_PATH "/broker.cfg" };
     main(2, argv);
 
     // Shouldn't get here!
-    printf("Broker Exited!\n");
+    ESP_LOGI(TAG, "Broker Exited!\n");
 
 #ifdef DEBUG
     while(1)

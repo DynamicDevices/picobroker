@@ -7,6 +7,8 @@
 
 // Definitions
 
+#ifdef SUPPORT_POWER_CONTROL
+
 #define SUPPORT_POWER_CONTROL
 #ifdef CONFIG_SUPPORT_POWER_CONTROL
 #undef SUPPORT_POWER_CONTROL
@@ -23,5 +25,7 @@
 // Prototypes
 
 void init_power_control(void);
+
+#endif // SUPPORT_POWER_CONTROL
 
 #endif // __POWER_CONTROL_H_

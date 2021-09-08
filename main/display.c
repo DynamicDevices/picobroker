@@ -5,6 +5,8 @@
 
 // Defines
 
+#ifdef SUPPORT_DISPLAY
+
 // Statics
 
 scr_driver_t     g_lcd;
@@ -57,7 +59,7 @@ void init_display(void)
 {
     esp_err_t ret;
 
-    printf("Create bus...\n");
+    ESP_LOGI(TAG, "Create bus...\n");
 
     display_spi_bus_init();
 
@@ -69,12 +71,8 @@ void init_display(void)
         .swap_data = true,
     };
 
-    printf("Create device...\n");
-
     scr_interface_driver_t *iface_drv;
     scr_interface_create(SCREEN_IFACE_SPI, &spi_lcd_cfg, &iface_drv);
-
-    printf("Find driver...\n");
 
     ret = scr_find_driver(SCREEN_CONTROLLER_ILI9342, &g_lcd);
     if (ESP_OK != ret) {
@@ -95,7 +93,7 @@ void init_display(void)
         .rotate = SCR_DIR_LRTB,
     };
 
-    printf("Init screen...\n");
-
     ret = g_lcd.init(&lcd_cfg);
 }
+
+#endif

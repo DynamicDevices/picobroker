@@ -44,6 +44,8 @@
 // External power control
 #define PWR_CONTROL_PIN             21
 
+#elif CONFIG_BOARD_ESP32_GENERIC
+
 #else
 
 #error Board type is not defined !!!

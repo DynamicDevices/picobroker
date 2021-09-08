@@ -1,6 +1,8 @@
 
 #include "power_control.h"
 
+#ifdef SUPPORT_POWER_CONTROL
+
 void init_power_control(void)
 {
     // Setup control relay
@@ -21,3 +23,5 @@ void init_power_control(void)
     // turn relay on
     gpio_set_level(PWR_CONTROL_PIN, 1);
 }
+
+#endif // SUPPORT_POWER_CONTROL

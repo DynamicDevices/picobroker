@@ -7,15 +7,19 @@
 /* FreeRTOS event group to signal when we are connected*/
 static EventGroupHandle_t s_wifi_event_group;
 
+static const char *TAG = "wifi";
+
+#if defined(SUPPORT_WIFI_STA)
 static int s_retry_num = 0;
 static char _ipSTA[16+1] = "";
-static const char *TAG = "wifi";
+#endif
 
 // Prototypes
 
 static void event_handler(void* arg, esp_event_base_t event_base,
                                 int32_t event_id, void* event_data)
 {
+#if defined(SUPPORT_WIFI_STA)
     if (event_base == WIFI_EVENT && event_id == WIFI_EVENT_STA_START) {
         esp_wifi_connect();
     } else if (event_base == WIFI_EVENT && event_id == WIFI_EVENT_STA_DISCONNECTED) {
@@ -37,6 +41,7 @@ static void event_handler(void* arg, esp_event_base_t event_base,
         s_retry_num = 0;
         xEventGroupSetBits(s_wifi_event_group, WIFI_CONNECTED_BIT);
     }
+#endif // SUPPORT_WIFI_STA
 }
 
 void wifi_init(void)
@@ -90,6 +95,7 @@ void wifi_init(void)
     esp_netif_dhcps_start(wifiAP);
 #endif
 
+#ifdef SUPPORT_WIFI_STA
     wifi_config_t sta_config = {
         .sta = {
             .ssid = ESP_STA_SSID,
@@ -105,19 +111,33 @@ void wifi_init(void)
             },
         },
     };
+#endif
 
-
-    ESP_ERROR_CHECK(esp_wifi_set_config(WIFI_IF_STA, &sta_config) );
 #ifdef SUPPORT_WIFI_AP
+#ifdef SUPPORT_WIFI_STA
+    // Mode is AP + STA
     ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_APSTA) );
+    ESP_ERROR_CHECK(esp_wifi_set_config(WIFI_IF_STA, &sta_config) );
     ESP_ERROR_CHECK(esp_wifi_set_config(WIFI_IF_AP, &ap_config) );
 #else
-    ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_STA));
+    // Mode is just AP
+    ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_AP) );
+    ESP_ERROR_CHECK(esp_wifi_set_config(WIFI_IF_AP, &ap_config) );
 #endif
+#elif SUPPORT_WIFI_STA
+    // Mode is just STA
+    ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_STA));
+    ESP_ERROR_CHECK(esp_wifi_set_config(WIFI_IF_STA, &sta_config) );
+#endif
+
+#if defined(SUPPORT_WIFI_STA) || defined(SUPPORT_WIFI_AP) 
     ESP_ERROR_CHECK(esp_wifi_start() );
+#endif
 
     ESP_LOGI(TAG, "wifi_init finished.");
 
+    // todo: Need to look at this for reconnection
+#if defined(SUPPORT_WIFI_STA)
     /* Waiting until either the connection is established (WIFI_CONNECTED_BIT) or connection failed for the maximum
      * number of re-tries (WIFI_FAIL_BIT). The bits are set by event_handler() (see above) */
     EventBits_t bits = xEventGroupWaitBits(s_wifi_event_group,
@@ -142,4 +162,5 @@ void wifi_init(void)
     ESP_ERROR_CHECK(esp_event_handler_instance_unregister(IP_EVENT, IP_EVENT_STA_GOT_IP, instance_got_ip));
     ESP_ERROR_CHECK(esp_event_handler_instance_unregister(WIFI_EVENT, ESP_EVENT_ANY_ID, instance_any_id));
     vEventGroupDelete(s_wifi_event_group);
+#endif // SUPPORT_WIFI_STA
 }

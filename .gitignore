@@ -54,3 +54,4 @@ dkms.conf
 .pio
 build
 *.old
+.vscode

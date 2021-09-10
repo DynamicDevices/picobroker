@@ -11,12 +11,15 @@ menu "PicoBroker"
             bool "M5Stack"
         config BOARD_ESP32_CAM
             bool "ESP32-CAM"
+        config BOARD_OLIMEX_GATEWAY
+            bool "OLIMEX-GATEWAY"
     endchoice
 
     config SUPPORT_DISPLAY
         prompt "Support a display for output"
         bool 
         default "n" if BOARD_ESP32_GENERIC
+        default "n" if BOARD_OLIMEX_GATEWAY
         default "y" if BOARD_M5STACK
         default "n" if BOARD_ESP32_CAM
         help 
@@ -27,6 +30,7 @@ menu "PicoBroker"
         bool 
         default "n" if BOARD_ESP32_GENERIC
         default "y" if BOARD_M5STACK
+        default "y" if BOARD_OLIMEX_GATEWAY
         default "y" if BOARD_ESP32_CAM
         help 
             Whether to support SD Card
@@ -35,6 +39,7 @@ menu "PicoBroker"
         prompt "Support building needed files into SPIFFS"
         bool 
         default "y" if BOARD_ESP32_GENERIC
+        default "n" if BOARD_OLIMEX_GATEWAY
         help 
             Whether to support building files into SPIFFS, e.g. if we don't have SD card support
         
@@ -44,12 +49,14 @@ menu "PicoBroker"
         default "n" if BOARD_ESP32_GENERIC
         default "y" if BOARD_M5STACK
         default "y" if BOARD_ESP32_CAM
+        default "y" if BOARD_OLIMEX_GATEWAY
         help 
             Whether to support GPIO for turning power control on/off for another device
 
     config PWR_CONTROL_PIN
         int "GPIO pin"
         default 21 if BOARD_M5STACK
+        default 21 if BOARD_OLIMEX_GATEWAY
         depends on SUPPORT_POWER_CONTROL
         help
             GPIO pin to use to turn on/off external device (e.g. via relay)

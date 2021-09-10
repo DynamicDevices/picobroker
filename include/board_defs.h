@@ -46,6 +46,10 @@
 
 #elif CONFIG_BOARD_ESP32_GENERIC
 
+#elif CONFIG_BOARD_OLIMEX_GATEWAY
+
+#define SD_CARD_MMC
+
 #else
 
 #error Board type is not defined !!!

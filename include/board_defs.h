@@ -60,6 +60,6 @@
 
 //#define TEST_SDCARD
 
-#define SUPPORT_WIFI_AP
+//#define SUPPORT_WIFI_AP
 
 #endif

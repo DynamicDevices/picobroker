@@ -16,6 +16,7 @@
 #include "wifi.h"
 #include "sdcard.h"
 #include "display.h"
+#include "power_control.h"
 
 #define BASE_PATH SD_CARD_BASE_PATH
 
@@ -49,10 +50,13 @@ void lcd_task(void *pvParameter)
 {
     while(1) 
     {
-//        vTaskDelay(1000 / portTICK_RATE_MS);
+        vTaskDelay(1000 / portTICK_RATE_MS);
+
+#ifdef TEST_DISPLAY
         screen_clear(&g_lcd, COLOR_BLACK);
 //        vTaskDelay(1000 / portTICK_RATE_MS);
         screen_clear(&g_lcd, COLOR_RED);
+#endif
     }
 
 }
@@ -81,6 +85,10 @@ void main_task(void *pvParameter)
 #endif
 
 #if defined(CONFIG_SUPPORT_SD_CARD)
+
+#if defined(SD_CARD_SPI)
+
+    ESP_LOGI(TAG, "Mounting SD SPI on " BASE_PATH);
 
     // Setup SD Card over SPI
     sdmmc_host_t host_config = SDSPI_HOST_M5STACK();
@@ -120,6 +128,44 @@ void main_task(void *pvParameter)
                 "Make sure SD card lines have pull-up resistors in place.", esp_err_to_name(ret));
         }
     }
+
+#elif defined(SD_CARD_MMC)
+
+    ESP_LOGI(TAG, "Mounting MMC on " BASE_PATH);
+
+    sdmmc_host_t host = SDMMC_HOST_DEFAULT();
+
+    // To use 1-line SD mode, uncomment the following line:
+    host.flags = SDMMC_HOST_FLAG_1BIT;
+    host.max_freq_khz = SDMMC_FREQ_PROBING;
+
+        // This initializes the slot without card detect (CD) and write protect (WP) signals.
+    // Modify slot_config.gpio_cd and slot_config.gpio_wp if your board has these signals.
+    sdmmc_slot_config_t slot_config = SDMMC_SLOT_CONFIG_DEFAULT();
+
+        // Options for mounting the filesystem.
+    // If format_if_mount_failed is set to true, SD card will be partitioned and formatted
+    // in case when mounting fails.
+    esp_vfs_fat_sdmmc_mount_config_t mount_config = {
+        .format_if_mount_failed = false,
+        .max_files = 5
+    };
+
+    // Use settings defined above to initialize SD card and mount FAT filesystem.
+    // Note: esp_vfs_fat_sdmmc_mount is an all-in-one convenience function.
+    // Please check its source code and implement error recovery when developing
+    // production applications.
+    sdmmc_card_t* card;
+    ret = esp_vfs_fat_sdmmc_mount(SD_CARD_BASE_PATH, &host, &slot_config, &mount_config, &card);
+    if (ret != ESP_OK) {
+        if (ret == ESP_FAIL) {
+            ESP_LOGE(TAG, "Failed to mount filesystem. If you want the card to be formatted, set format_if_mount_failed = true.");
+        } else {
+            ESP_LOGE(TAG, "Failed to initialize the card (%d). Make sure SD card lines have pull-up resistors in place.", ret);
+        }
+    }
+
+#endif // SPI / HS2
 
     // Card has been initialized, print its properties
     sdmmc_card_print_info(stdout, card);
@@ -201,6 +247,7 @@ void main_task(void *pvParameter)
 
     // Shouldn't get here!
     ESP_LOGI(TAG, "Broker Exited!\n");
+    fflush(stdout);
 
 #ifdef DEBUG
     while(1)

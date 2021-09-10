@@ -22,6 +22,17 @@ void init_power_control(void)
 
     // turn relay on
     gpio_set_level(PWR_CONTROL_PIN, 1);
+
+#ifdef DISABLED
+    printf("*** PIN %d, %llu", PWR_CONTROL_PIN, PWR_CONTROL_PIN_SEL);
+    while(1)
+    {
+        gpio_set_level(PWR_CONTROL_PIN, 1);
+        vTaskDelay(1000 / portTICK_RATE_MS);
+        gpio_set_level(PWR_CONTROL_PIN, 0);
+        vTaskDelay(1000 / portTICK_RATE_MS);
+    }
+#endif
 }
 
 #endif // SUPPORT_POWER_CONTROL

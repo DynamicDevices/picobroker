@@ -18,6 +18,27 @@
 #include "display.h"
 #include "power_control.h"
 
+//my files
+#include <stdio.h>
+#include <stdint.h>
+#include <stddef.h>
+#include <string.h>
+#include "esp_wifi.h"
+#include "esp_system.h"
+#include "esp_netif.h"
+
+#include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
+#include "freertos/semphr.h"
+#include "freertos/queue.h"
+
+#include "lwip/sockets.h"
+#include "lwip/dns.h"
+#include "lwip/netdb.h"
+
+#include "esp_log.h"
+#include "mqtt_client.h"
+
 #define BASE_PATH SD_CARD_BASE_PATH
 
 #if defined (CONFIG_FILES_IN_SPIFFS)
@@ -168,7 +189,7 @@ void main_task(void *pvParameter)
 #endif // SPI / HS2
 
     // Card has been initialized, print its properties
-    sdmmc_card_print_info(stdout, card);
+    //sdmmc_card_print_info(stdout, card); //commented out due to error
 
 #if defined(TEST_SDCARD)
     xTaskCreate(&sdcard_test, "sdcard_test", 8192, NULL, 5, NULL);
@@ -254,8 +275,79 @@ void main_task(void *pvParameter)
       ;
 #endif
 }
+
+// void pub_repeat(void *pvParameter)
+// {
+//     while(1)
+// 	{
+//         ESP_LOGI(TAG, "HELLO WORLD\n");
+//         esp_mqtt_event_handle_t event = event_data;
+//         esp_mqtt_client_handle_t client = event->client;    
+// 	    vTaskDelay(1000 / portTICK_RATE_MS);
+// 	}
+//     printf("Restarting now.\n");
+//     fflush(stdout);
+//     esp_restart();
+// }
  
+
+static esp_err_t mqtt_event_handler_cb(esp_mqtt_event_handle_t event)
+{
+    esp_mqtt_client_handle_t client = event->client;
+    int msg_id;
+
+    switch (event->event_id) 
+    {
+    case MQTT_EVENT_CONNECTED:
+        ESP_LOGI(TAG, "MQTT_EVENT_CONNECTED -- Connected to broker");
+        msg_id = esp_mqtt_client_publish(client, "/my/topic", "hi all from esp32", 0, 1, 0);
+        break;
+    case MQTT_EVENT_DISCONNECTED:
+        ESP_LOGI(TAG, "MQTT_EVENT_DISCONNECTED");
+        break;
+
+    case MQTT_EVENT_SUBSCRIBED:
+        ESP_LOGI(TAG, "MQTT_EVENT_SUBSCRIBED, msg_id=%d", event->msg_id);
+        break;
+    case MQTT_EVENT_UNSUBSCRIBED:
+        ESP_LOGI(TAG, "MQTT_EVENT_UNSUBSCRIBED, msg_id=%d", event->msg_id);
+        break;
+    case MQTT_EVENT_PUBLISHED:
+        ESP_LOGI(TAG, "MQTT_EVENT_PUBLISHED, msg_id=%d", event->msg_id);
+        break;
+    case MQTT_EVENT_DATA:
+        ESP_LOGI(TAG, "MQTT_EVENT_DATA");
+        break;
+    case MQTT_EVENT_ERROR:
+        ESP_LOGI(TAG, "MQTT_EVENT_ERROR");
+        break;
+    default:
+        ESP_LOGI(TAG, "Other event id:%d", event->event_id);
+        break;
+    }
+    return ESP_OK;
+}
+
+static void mqtt_event_handler(void *handler_args, esp_event_base_t base, int32_t event_id, void *event_data)
+{
+    ESP_LOGD(TAG, "Event dispatched from event loop base=%s, event_id=%d", base, event_id);
+    mqtt_event_handler_cb(event_data);
+}
+
+static void mqtt_app_start(void)
+{
+    esp_mqtt_client_config_t mqtt_cfg = {
+        .uri = "mqtt://mqtt.dynamicdevices.co.uk",
+        .username = "admin",
+        .password = "decafbad00",
+    };
+    esp_mqtt_client_handle_t client = esp_mqtt_client_init(&mqtt_cfg);
+    esp_mqtt_client_register_event(client, ESP_EVENT_ANY_ID, mqtt_event_handler, client);
+    esp_mqtt_client_start(client);
+}
+
 void app_main()
 {
     xTaskCreate(&main_task, "main_task", 8192, NULL, 5, NULL);
+    xTaskCreate(&mqtt_app_start, "mqtt_app_start", 4098, NULL, 5, NULL);
 }

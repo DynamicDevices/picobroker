@@ -17,7 +17,7 @@ void sdcard_test(void *pvParameter)
             ESP_LOGE(TAG, "Failed to open file for writing");
             goto err;
         }
-        fprintf(f, "Hello PicoBroker World!\n");
+        fprintf(f, "Hello PicoBroker World! #CS\n");
         fclose(f);
         ESP_LOGI(TAG, "File written");
 

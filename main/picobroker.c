@@ -1,7 +1,3 @@
-THIS IS A DODGY COMMIT
-
-//comment
-//comment 2
 // --------
 // INCLUDES
 // --------

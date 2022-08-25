@@ -1,4 +1,4 @@
-
+//comment
 // --------
 // INCLUDES
 // --------
@@ -43,7 +43,7 @@ extern int main(int argc, char* argv[]);
 static const char *TAG = "picobroker";
 
 // Implementation
-
+//hello
 #ifdef SUPPORT_DISPLAY 
 
 void lcd_task(void *pvParameter)
@@ -258,4 +258,5 @@ void main_task(void *pvParameter)
 void app_main()
 {
     xTaskCreate(&main_task, "main_task", 8192, NULL, 5, NULL);
+// create new task here
 }

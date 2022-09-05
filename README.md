@@ -4,6 +4,8 @@
 
 A small MQTT and MQTT-SN port of IBM's Really Small Message Broker (RSMB).
 
+Please use the ```--recurse-submodules``` argument to obtain RSMB.
+
 *This is a work in progress*
 
 ### Notes

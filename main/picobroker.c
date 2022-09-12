@@ -38,6 +38,7 @@
 
 #include "esp_log.h"
 #include "mqtt_client.h"
+#include "esp_sleep.h" //for future low power function
 
 #define BASE_PATH SD_CARD_BASE_PATH
 
@@ -276,34 +277,21 @@ void main_task(void *pvParameter)
 #endif
 }
 
-// void pub_repeat(void *pvParameter)
-// {
-//     while(1)
-// 	{
-//         ESP_LOGI(TAG, "HELLO WORLD\n");
-//         esp_mqtt_event_handle_t event = event_data;
-//         esp_mqtt_client_handle_t client = event->client;    
-// 	    vTaskDelay(1000 / portTICK_RATE_MS);
-// 	}
-//     printf("Restarting now.\n");
-//     fflush(stdout);
-//     esp_restart();
-// }
- 
+// -------  MQTT Publishing Feature ----------     //
 
 static esp_err_t mqtt_event_handler_cb(esp_mqtt_event_handle_t event)
 {
     esp_mqtt_client_handle_t client = event->client;
     int msg_id;
-
+    
     switch (event->event_id) 
     {
-    case MQTT_EVENT_CONNECTED:
+    case MQTT_EVENT_CONNECTED: //on successfull broker connection
         ESP_LOGI(TAG, "MQTT_EVENT_CONNECTED -- Connected to broker");
-        msg_id = esp_mqtt_client_publish(client, "/my/topic", "hi all from esp32", 0, 1, 0);
+        msg_id = esp_mqtt_client_publish(client, "esp/boot", "Connection established to broker", 0, 1, 0);
         break;
     case MQTT_EVENT_DISCONNECTED:
-        ESP_LOGI(TAG, "MQTT_EVENT_DISCONNECTED");
+        ESP_LOGI(TAG, "MQTT_EVENT_DISCONNECTED"); //on disconnection from broker
         break;
 
     case MQTT_EVENT_SUBSCRIBED:
@@ -338,16 +326,28 @@ static void mqtt_app_start(void)
 {
     esp_mqtt_client_config_t mqtt_cfg = {
         .uri = "mqtt://mqtt.dynamicdevices.co.uk",
-        .username = "user", //insert username
-        .password = "pass",  //insert password
     };
     esp_mqtt_client_handle_t client = esp_mqtt_client_init(&mqtt_cfg);
     esp_mqtt_client_register_event(client, ESP_EVENT_ANY_ID, mqtt_event_handler, client);
     esp_mqtt_client_start(client);
+
+    while(1)
+    {
+        vTaskDelay(10000 / portTICK_RATE_MS); //delay for mqtt msgs
+        esp_mqtt_client_publish(client, "esp/hello", "Hello from ESP", 0, 1, 0);  
+    }
+    
+    printf("Restarting now.\n");
+    fflush(stdout); //shouldn't get to here
+    esp_restart();
+   
 }
+
+// -------  END - MQTT Publishing Feature ---------//
 
 void app_main()
 {
     xTaskCreate(&main_task, "main_task", 8192, NULL, 5, NULL);
+    vTaskDelay(7000 / portTICK_RATE_MS); //wait for wi-fi to connect
     xTaskCreate(&mqtt_app_start, "mqtt_app_start", 4098, NULL, 5, NULL);
 }

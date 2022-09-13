@@ -292,6 +292,9 @@ static esp_err_t mqtt_event_handler_cb(esp_mqtt_event_handle_t event)
         break;
     case MQTT_EVENT_DISCONNECTED:
         ESP_LOGI(TAG, "MQTT_EVENT_DISCONNECTED"); //on disconnection from broker
+        printf("||| RESTARTING |||\n");
+        fflush(stdout);
+        esp_restart();
         break;
 
     case MQTT_EVENT_SUBSCRIBED:
